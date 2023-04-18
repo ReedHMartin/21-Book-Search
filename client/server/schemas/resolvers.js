@@ -22,10 +22,60 @@ const resolvers = {
 
   // Handle write operations
   Mutation: {
-    // TODO: Implement 'addUser' resolver
-    // TODO: Implement 'login' resolver
-    // TODO: Implement 'saveBook' resolver
-    // TODO: Implement 'removeBook'
+    // Implement 'addUser' resolver
+    addUser: async (parent, args) => {
+        const user = await User.create(args);
+        const token = signToken(user);
+        return { token, user };
+    },
+    
+    // Implement 'login' resolver
+    login: async (parent, { email, password }) => {
+        const user = await User.findOne({ email });
+  
+        if (!user) {
+          throw new AuthenticationError('Incorrect email or password');
+        }
+  
+        const correctPw = await user.isCorrectPassword(password);
+  
+        if (!correctPw) {
+          throw new AuthenticationError('Incorrect email or password');
+        }
+  
+        const token = signToken(user);
+        return { token, user };
+      },
+
+    // Implement 'saveBook' resolver
+    saveBook: async (parent, { bookData }, context) => {
+        if (context.user) {
+          const updatedUser = await User.findByIdAndUpdate(
+            { _id: context.user._id },
+            { $addToSet: { savedBooks: bookData } },
+            { new: true }
+          );
+  
+          return updatedUser;
+        }
+  
+        throw new AuthenticationError('You need to be logged in!');
+      },
+
+    // Implement 'removeBook'
+    removeBook: async (parent, { bookId }, context) => {
+        if (context.user) {
+          const updatedUser = await User.findByIdAndUpdate(
+            { _id: context.user._id },
+            { $pull: { savedBooks: { bookId } } },
+            { new: true }
+          );
+  
+          return updatedUser;
+        }
+  
+        throw new AuthenticationError('You need to be logged in!');
+      },
   },
 };
 
